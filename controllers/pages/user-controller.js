@@ -1,33 +1,18 @@
-const bcrypt = require('bcryptjs')
 const { imgurFileHandler } = require('../../helpers/file-helpers')
 const { getUser } = require('../../helpers/auth-helpers')
 const { User, Restaurant, Comment, Favorite, Like, Followship } = require('../../models')
+const userServices = require('../../services/user-services')
 const userController = {
   signUpPage: (req, res) => {
     res.render('signup')
   },
   signUp: (req, res, next) => {
-    if (req.body.password !== req.body.passwordCheck) throw new Error('Passwords do not match!')
-    User.findOne({ where: { email: req.body.email } })
-      .then(user => {
-        if (user) throw new Error('Email already exists!')
-        const { file } = req
-        return Promise.all([
-          bcrypt.hash(req.body.password, 10),
-          imgurFileHandler(file)
-        ])
-      })
-      .then(([hash, filePath]) => User.create({
-        name: req.body.name,
-        email: req.body.email,
-        password: hash,
-        image: filePath || null
-      }))
-      .then(() => {
-        req.flash('success_messages', '成功註冊帳號！')
-        res.redirect('/signin')
-      })
-      .catch(err => next(err))
+    userServices.signUp(req, (err, data) => {
+      if (err) return next(err)
+      req.flash('success_messages', '成功註冊帳號！')
+      req.session.createdData = data
+      return res.redirect('/signin')
+    })
   },
   signInPage: (req, res) => {
     res.render('signin')
